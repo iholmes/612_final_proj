@@ -1,0 +1,67 @@
+---
+title: "final"
+author: "Iris"
+date: "December 16, 2014"
+output: html_document
+---
+
+I created a set of functions that take in starting parameters for a Lotka-Volterra model of two microbes growing and competing in one host, and return the expected average population size of the two microbes after a user-identified number of host generations. Each microbe has an intrinsic rate of increase (the rate at which they would breed absent of any resource competition), a carrying capacity within the host, and a degree to which the population of the other microbe affects their growth rate. I also allow the user to set the number of hosts available to the microbe, and the number of generations the microbes undergo per host generation. 
+
+```{r, echo=FALSE, eval=TRUE}
+n.host <- 100
+hostMat <- matrix(NA, nrow=n.host, ncol=2)
+
+
+hostMat[,1] <- runif(100, 0, 1)
+
+hostMat[,2] <- 1-hostMat[,1]
+
+n.mic.gen <- 10
+
+# number of offspring per generation
+
+nOff1 <- 2
+nOff2 <- 20
+
+# starting population size
+
+micStart <- 1e3
+micK <- 1e5
+
+# interaction term
+alpha12 <- 0.5
+alpha21 <- 0.05
+
+internalLV.show <- function(vector){
+  
+  tmp <- matrix(NA, nrow=10, ncol=2)
+  tmp[1,1] <- vector[1]*micStart
+  tmp[1,2] <- vector[2]*micStart
+  
+  
+  for(i in 2:10){
+    tmp[i,1] <-tmp[i-1,1]*(exp(nOff1*(1-(tmp[i-1,1]+alpha12*tmp[i-1,2])/micK)))
+    
+    tmp[i,2] <-tmp[i-1,2]*(exp(nOff1*(1-(tmp[i-1,2]+alpha21*tmp[i-1,1])/micK)))
+  }
+  return(tmp)
+}
+
+show <- internalLV.show(c(0.5, 0.5))
+
+plot(x=1:10, y=seq(0, 112100, 112100/9), type="n", xlab="time step", ylab="population")
+lines(show[,1], col="blue")
+lines(show[,2], col="red")
+
+```
+
+
+
+
+
+
+
+
+
+
+
