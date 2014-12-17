@@ -66,7 +66,7 @@ Due to competition between the organisms, their population levels show fluctuati
 
 ```{r, echo=FALSE, eval=TRUE}
 
-nextSeed <- function(oneGenVec){
+nextSeed <- function(oneGenVec, tProb1, tProb2){
   oneTrans <- oneGenVec[1]*tProb1*micStart/((oneGenVec[1]*tProb1+ oneGenVec[2]*tProb2)+1)
   
   twoTrans <- oneGenVec[2]*tProb2*micStart/((oneGenVec[1]*tProb1+ oneGenVec[2]*tProb2)+1)
@@ -80,23 +80,79 @@ nextSeed <- function(oneGenVec){
 To make the overall function as quick and user-friendly as possible, I created a function that takes in the user's desired range of competition coeffiecients (ranging from 0 to 1), transmission probabilities (also from zero to 1), and intrinsic rates of growth (unbounded, whole numbers), and makes a matrix of each unique combination of parameters. 
 
 ```{r, echo=FALSE, eval=TRUE}
-make.input <- function(alphamin, alphamax, tprobmin, tprobmax, nOffmin, nOffmax, step.size){
+make.input <- function(alphamin, alphamax, tProbmin, tProbmax, nOffmin, nOffmax, step.size){
   alpha <- seq(alphamin, alphamax, step.size)
-  tprob <- seq(tprobmin, tprobmax, step.size)
+  tprob <- seq(tProbmin, tProbmax, step.size)
   nOff <- seq(nOffmin, nOffmax)
   alphmat <- cbind(rep(alpha, each=length(alpha)), rep(alpha, length(alpha)))
   
- off1mat <- cbind(rep(alphmat[,1], length(nOff)), rep(alphmat[,2], length(nOff)), 
-                 rep(nOff, each=nrow(alphmat)))
+  probmat <- cbind(rep(alphmat[,1], length(tprob)), rep(alphmat[,2], length(tprob)), 
+                 rep(tprob, each=nrow(alphmat)))
+  
+ off1mat <- cbind(rep(probmat[,1], length(nOff)), rep(probmat[,2], length(nOff)), rep(probmat[,3], length(nOff)),
+                 rep(nOff, each=nrow(probmat)))
  off2mat <- cbind(rep(off1mat[,1], length(nOff)), rep(off1mat[,2], length(nOff)), 
-                rep(off1mat[,3], length(nOff)), rep(nOff, nrow(off1mat)))
+                rep(off1mat[,3], length(nOff)), rep(off1mat[,4], length(nOff)), rep(nOff, nrow(off1mat)))
  off2mat <- unique(off2mat)
  return(off2mat)
 }
 ```
 
 
-Finally, I combine the within-host and transmission functions into one large model function, and apply that function to 
+Finally, I combine the within-host and transmission functions into one large model function, and apply that function to each user-defined parameter combination. The function returns the average population level of each microbe at each parameter combination over N host generations.
+
+```{r, echo=FALSE, eval=TRUE}
+inMat <- make.input(0.1, 0.5, 0.2, 0.7, 1, 4, 0.1)
+n.gen=10
+
+paramTest <- function(inVec, hostMat){
+    
+oneMat <- matrix(NA, nrow=n.host, ncol=n.gen)
+oneMat[,1] <- hostMat[,1]*micStart
+
+twoMat <- matrix(NA, nrow=n.host, ncol=n.gen)
+twoMat[,1] <- hostMat[,2]*micStart
+
+internalLV <- function(vec){
+  
+  tmp <- matrix(NA, nrow=10, ncol=2)
+  tmp[1,1] <- vec[1]
+  tmp[1,2] <- vec[2]
+  
+
+  for(i in 2:10){
+    tmp[i,1] <-tmp[i-1,1]*(exp(inVec[3]*(1-(tmp[i-1,1]+inVec[1]*tmp[i-1,2])/micK)))
+    
+    tmp[i,2] <-tmp[i-1,2]*(exp(inVec[4]*(1-(tmp[i-1,2]+inVec[2]*tmp[i-1,1])/micK)))
+  }
+  return(tmp[10,])
+}
+
+
+
+  for(k in 2:n.gen){
+
+    oneGenPop <- apply(cbind(oneMat[,k-1], twoMat[,k-1]), 1, internalLV)
+
+    nextPop <- apply(oneGenPop, 2, nextSeed, tProb1=inVec[3], tProb2=inVec[4])
+
+    oneMat[,k] <- nextPop[1,]
+    twoMat[,k] <- nextPop[2,]
+
+  }
+
+return(cbind(mean(colMeans(oneMat)), mean(colMeans(twoMat))))
+}
+
+micMat <- apply(inMat, 1, paramTest, hostMat=hostMat)
+
+tmat <- cbind(inMat, micMat[1,], micMat[2,])
+
+plot(x=1:ncol(micMat), y=seq(min(micMat[1,]), max(micMat[1,]), by=((max(micMat[1,])-min(micMat[,1]))/(ncol(micMat)-1))), type="n", xlab="parameter combination", ylab="microbe 1 population")
+
+points(x=1:ncol(micMat),y=tmat[,6])
+
+```
 
 
 
