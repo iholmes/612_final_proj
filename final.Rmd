@@ -64,7 +64,7 @@ lines(show[,2], col="red")
 
 Due to competition between the organisms, their population levels show fluctuation over time within a host. In order to model transimission between hosts, I used a second function with two new parameters, which determine the percentage of each microbe's population that is transmitted to its offspring. I model the population with each host having exactly one offspring. Each new host starts out with excatly 1000 individual microbes, with the makeup of that seed population determined by the microbe's relative frequency in the parent multiplied by that microbe's transmission probability.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=TRUE}
 
 nextSeed <- function(oneGenVec){
   oneTrans <- oneGenVec[1]*tProb1*micStart/((oneGenVec[1]*tProb1+ oneGenVec[2]*tProb2)+1)
@@ -77,7 +77,29 @@ nextSeed <- function(oneGenVec){
 ```
 
 
-To make the function as quick and user-friendly as possible, I 
+To make the overall function as quick and user-friendly as possible, I created a function that takes in the user's desired range of competition coeffiecients (ranging from 0 to 1), transmission probabilities (also from zero to 1), and intrinsic rates of growth (unbounded, whole numbers), and makes a matrix of each unique combination of parameters. 
+
+```{r, echo=FALSE, eval=TRUE}
+make.input <- function(alphamin, alphamax, tprobmin, tprobmax, nOffmin, nOffmax, step.size){
+  alpha <- seq(alphamin, alphamax, step.size)
+  tprob <- seq(tprobmin, tprobmax, step.size)
+  nOff <- seq(nOffmin, nOffmax)
+  alphmat <- cbind(rep(alpha, each=length(alpha)), rep(alpha, length(alpha)))
+  
+ off1mat <- cbind(rep(alphmat[,1], length(nOff)), rep(alphmat[,2], length(nOff)), 
+                 rep(nOff, each=nrow(alphmat)))
+ off2mat <- cbind(rep(off1mat[,1], length(nOff)), rep(off1mat[,2], length(nOff)), 
+                rep(off1mat[,3], length(nOff)), rep(nOff, nrow(off1mat)))
+ off2mat <- unique(off2mat)
+ return(off2mat)
+}
+```
+
+
+Finally, I combine the within-host and transmission functions into one large model function, and apply that function to 
+
+
+
 
 
 
